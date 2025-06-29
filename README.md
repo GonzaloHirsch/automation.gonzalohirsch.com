@@ -28,6 +28,14 @@ python hsbc.py
 
 That will open a Chromium window, and will wait for you to fill in the `Log On Security Code`, so that it can continue. After that, it will iterate some of the accounts and try to download statements for the previous full month. Those will go into the `scrapers/<HSBC_DOWNLOAD_LOCATION>` folder, with a name based on several pieces of information from the account.
 
+# Requirements
+
+Requirements are managed within the specific folders for now. Any requirements file can be updated if you have activated the virtual environment and you run:
+
+```
+pip freeze > requirements.txt
+```
+
 # VS Code
 
 Copy path to the Python3 bin in the .env and do the 'Select Interpreter', paste that path.

@@ -1,18 +1,20 @@
 import calendar
 import re
 import time
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from dotenv import load_dotenv
 import os
 
-from utils import wait_for_download_to_finish
+from custom_driver import CustomDriver
+from utils import (
+    compute_last_month_range,
+    prep_download_folder,
+    wait_for_download_to_finish,
+)
 
 # Need to set the date this way to trigger the update of the input field.
 JS_SET_DATE = """
@@ -28,27 +30,12 @@ load_dotenv(dotenv_path=".env.dev")
 HSBC_PREFIX = os.getenv("HSBC_DOWNLOAD_PREFIX", "hsbc")
 
 # Preparing downloads.
-project_root = os.path.dirname(os.path.abspath(__file__))  # current script directory
-download_folder = os.path.join(
-    project_root, os.getenv("HSBC_DOWNLOAD_LOCATION", "chrome_downloads")
+download_filepath = prep_download_folder(
+    os.getenv("HSBC_DOWNLOAD_LOCATION", "chrome_downloads")
 )
-os.makedirs(download_folder, exist_ok=True)
 
-# Set up Chrome
-options = webdriver.ChromeOptions()
-options.add_argument(
-    "--start-maximized"
-)  # Do need to see it to be able to complete the security step.
-prefs = {
-    "download.default_directory": download_folder,
-    "download.prompt_for_download": False,
-    "download.directory_upgrade": True,
-    "safebrowsing.enabled": True,
-}
-options.add_experimental_option("prefs", prefs)
-driver = webdriver.Chrome(
-    service=Service(ChromeDriverManager().install()), options=options
-)
+custom_driver = CustomDriver(download_filepath)
+driver = custom_driver.get_driver()
 
 # Navigate to login page
 driver.get("https://www.hsbc.co.uk/security")
@@ -82,15 +69,7 @@ total_accounts = len(account_list)
 print(f"✅ Working through {total_accounts} accounts...")
 
 # Need to compute the right date range for the previous complete month.
-today = date.today()
-previous_month = today - relativedelta(months=1)
-_, previous_month_max_day = calendar.monthrange(
-    previous_month.year, previous_month.month
-)
-from_date = today.replace(month=previous_month.month, day=1, year=previous_month.year)
-to_date = today.replace(
-    month=previous_month.month, day=previous_month_max_day, year=previous_month.year
-)
+from_date, to_date = compute_last_month_range()
 
 for i in range(total_accounts):
     account_id = i + 1
@@ -160,7 +139,7 @@ for i in range(total_accounts):
 
     # Rename the download.
     download_filepath = wait_for_download_to_finish(
-        download_folder,
+        download_filepath,
         ignore_pattern=[".gitkeep", HSBC_PREFIX],
         interval=0.25,
     )
@@ -169,7 +148,7 @@ for i in range(total_accounts):
         driver.quit()
         exit()
     new_name = os.path.join(
-        download_folder,
+        download_filepath,
         f"{HSBC_PREFIX}__{re.sub(
            r"[^a-zA-Z0-9]",
            '-',

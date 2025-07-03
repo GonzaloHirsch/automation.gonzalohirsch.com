@@ -1,6 +1,9 @@
+import calendar
 import time
 import os
-from typing import List, Optional
+from typing import List, Optional, Tuple
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 
 def wait_for_download_to_finish(
@@ -34,3 +37,27 @@ def wait_for_download_to_finish(
         time.sleep(interval)
 
     return None  # Timeout
+
+
+def prep_download_folder(folder_name: str) -> str:
+    project_root = os.path.dirname(
+        os.path.abspath(__file__)
+    )  # current script directory
+    download_folder = os.path.join(project_root, folder_name)
+    os.makedirs(download_folder, exist_ok=True)
+    return download_folder
+
+
+def compute_last_month_range() -> Tuple[date, date]:
+    today = date.today()
+    previous_month = today - relativedelta(months=1)
+    _, previous_month_max_day = calendar.monthrange(
+        previous_month.year, previous_month.month
+    )
+    from_date = today.replace(
+        month=previous_month.month, day=1, year=previous_month.year
+    )
+    to_date = today.replace(
+        month=previous_month.month, day=previous_month_max_day, year=previous_month.year
+    )
+    return from_date, to_date

@@ -212,3 +212,6 @@ __marimo__/
 # Downloads
 **/chrome_downloads/*
 !**/chrome_downloads/.gitkeep
+
+# Results
+**/result
